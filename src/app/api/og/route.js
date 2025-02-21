@@ -1,6 +1,6 @@
 import { ImageResponse } from 'next/og';
 import { getFromKV } from '@/lib/cloudflare-kv';
-import { ENNEAGRAM_TYPES } from '@/lib/constants';
+import { ENNEAGRAM_TYPES, SPECTRAL_TYPES } from '@/lib/constants';
 
 export const runtime = 'edge';
 
@@ -10,7 +10,7 @@ const karlaFontData = fetch(
 ).then(res => res.arrayBuffer());
 
 async function getAnalysis(fid) {
-  const cacheKey = `enneagram:analysis:${fid}`;
+  const cacheKey = `spectral:analysis:${fid}`;
   const cachedData = await getFromKV(cacheKey);
   
   if (!cachedData) {
@@ -20,7 +20,7 @@ async function getAnalysis(fid) {
   const data = JSON.parse(cachedData);
   const analysis = data.value ? JSON.parse(data.value) : data;
 
-  if (!analysis?.username || !analysis?.pfpUrl || !analysis?.analysis?.enneagramType) {
+  if (!analysis?.username || !analysis?.pfpUrl || !analysis?.analysis?.spectralType) {
     throw new Error('Invalid analysis data');
   }
 
@@ -28,8 +28,8 @@ async function getAnalysis(fid) {
     username: analysis.username,
     pfp: analysis.pfpUrl,
     type: {
-      number: analysis.analysis.enneagramType,
-      name: ENNEAGRAM_TYPES[analysis.analysis.enneagramType].split('(')[1].replace(')', '')
+      id: analysis.analysis.spectralType,
+      name: SPECTRAL_TYPES[analysis.analysis.spectralType].name
     }
   };
 }
@@ -73,7 +73,7 @@ export async function GET(request) {
               fontSize: '64px',
               fontWeight: 500,
             }}>
-              Enneagram Analysis
+              Spectral Researcher Type
             </span>
           </div>
           <div style={{
@@ -103,7 +103,7 @@ export async function GET(request) {
             fontWeight: 800,
             marginBottom: '16px'
           }}>
-            According to my casts, I'm a...
+            Based on my research style, I'm a...
           </span>
 
           <span style={{
@@ -111,14 +111,14 @@ export async function GET(request) {
             fontWeight: 500,
             marginBottom: '80px',
           }}>
-            Type {analysis.type.number} ({analysis.type.name})
+            {analysis.type.name}
           </span>
 
           <span style={{
             fontSize: '42px',
             fontWeight: 500,
           }}>
-            Discover Your Own Enneagram Type ↓
+            Discover Your Research Type ↓
           </span>
         </div>
       ),

@@ -16,19 +16,14 @@ export async function GET(request) {
       );
     }
 
-    const cacheKey = `enneagram:analysis:${fid}`;
+    // Try to get from cache first
+    const cacheKey = `spectral:analysis:${fid}`;
     const cachedData = await getFromKV(cacheKey);
-    
     if (cachedData) {
-      try {
-        const parsed = JSON.parse(cachedData);
-        const data = parsed.value ? JSON.parse(parsed.value) : parsed;
-        return NextResponse.json(data);
-      } catch (e) {
-        console.error('Error parsing cached data:', e);
-      }
+      return NextResponse.json(JSON.parse(cachedData));
     }
-    
+
+    // Fetch and analyze
     const [userInfo, casts] = await Promise.all([
       fetchUserInfo(fid),
       fetchUserCasts(fid),

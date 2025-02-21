@@ -1,28 +1,29 @@
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
+import { SPECTRAL_TYPES } from './constants';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 const personalitySchema = {
   type: SchemaType.OBJECT,
   properties: {
-    enneagramType: {
-      type: SchemaType.NUMBER,
-      description: "The user's primary enneagram type number (1-9)",
+    spectralType: {
+      type: SchemaType.STRING,
+      description: "The user's primary spectral researcher type (OBSERVER, CATALYST, SYNTHESIZER, or ARCHIVIST)",
     },
     personalityOverview: {
       type: SchemaType.STRING,
-      description: "4-6 sentences: 2-3 describing core traits starting with 'You are', followed by 1-2 gentle sentences about growth areas using 'Type X tends to...' -- Do not mention their wing.",
+      description: "4-5 sentences describing their research style and how they process information",
       maxLength: 800,
     },
     supportingEvidence: {
       type: SchemaType.ARRAY,
-      description: "Exactly 4 key behavioral patterns that indicate their type",
+      description: "3 key behavioral patterns that indicate their type",
       items: {
         type: SchemaType.OBJECT,
         properties: {
           pattern: { 
             type: SchemaType.STRING,
-            description: "Two-word name for this behavioral pattern (e.g. 'Variety Seeking' or 'Innovation Driven')",
+            description: "Two-word name for this behavioral pattern",
             maxLength: 30,
           },
           phrases: {
@@ -30,48 +31,49 @@ const personalitySchema = {
             description: "1-3 short phrases from their casts demonstrating this pattern",
             items: { 
               type: SchemaType.STRING,
-              description: "A 2-3 word direct quote showing this pattern",
               maxLength: 30,
             },
-            maxItems: 4,
+            maxItems: 3,
             minItems: 1,
           },
           explanation: { 
             type: SchemaType.STRING,
-            description: "One clear sentence explaining how these phrases reveal their personality type",
+            description: "One clear sentence explaining how these phrases reveal their research style",
             maxLength: 150,
           },
         },
       },
-      maxItems: 6,
-      minItems: 3,
+      maxItems: 3,
+      minItems: 2,
     },
     whyNotOtherTypes: {
       type: SchemaType.ARRAY,
-      description: "The other likely alternative types that were considered but rejected",
       items: {
         type: SchemaType.OBJECT,
         properties: {
-          type: { type: SchemaType.NUMBER },
-          reason: { 
-            type: SchemaType.STRING,
-            description: "Clear explanation why this type doesn't fit (always use 'Type X' not 'type x' when referencing types), with a short explaination of that type",
-            maxLength: 150,
-          },
-        },
-      },
-      maxItems: 4,
-      minItems: 2,
+          type: { type: SchemaType.STRING },
+          reason: { type: SchemaType.STRING }
+        }
+      }
+    },
+    secondaryType: {
+      type: SchemaType.STRING,
+      description: "The user's secondary spectral researcher type that complements their primary type",
+    },
+    growthAreas: {
+      type: SchemaType.STRING,
+      description: "2-3 sentences about potential areas for development based on their type",
+      maxLength: 300,
     },
   },
-  required: ["enneagramType", "personalityOverview", "supportingEvidence", "whyNotOtherTypes"],
+  required: ["spectralType", "personalityOverview", "supportingEvidence", "secondaryType", "growthAreas"],
 };
 
 export async function analyzePersonality(bio, casts) {
   const model = genAI.getGenerativeModel({
     model: "gemini-2.0-flash",
     generationConfig: {
-      temperature: 1.5,
+      temperature: 1.2,
       topK: 40,
       topP: 0.9,
       maxOutputTokens: 3072,
@@ -80,47 +82,34 @@ export async function analyzePersonality(bio, casts) {
     },
   });
 
-  const prompt = `Analyze this Farcaster user's bio and casts to determine their enneagram type. Write the analysis speaking directly to them in second person ("You are...").
-  
+  const prompt = `Analyze this Farcaster user's bio and casts to determine their Spectral Researcher type. The four types are:
+
+OBSERVER: Notices patterns and details others miss
+CATALYST: Generates unique, unexpected outputs
+SYNTHESIZER: Connects and interprets multiple insights
+ARCHIVIST: Documents and classifies findings
+
 Bio: ${bio || 'No bio provided'}
 
 Recent casts:
 ${casts.join('\n')}
 
-IMPORTANT FORMATTING RULES:
-1. Keep everything extremely concise and specific
-2. Use exactly TWO words for pattern names (e.g. "Variety Seeking")
-3. Never repeat or concatenate similar words
-4. Never use slashes or multiple descriptors
-5. Stay under all length limits
-6. Focus on behavioral patterns, not assumptions
-7. Always capitalize "Type" when referring to enneagram types (e.g., "Type 7" not "type 7")
+IMPORTANT RULES:
+1. Keep everything concise and specific
+2. Use exactly TWO words for pattern names
+3. Focus on information processing and research styles
+4. Look for evidence of how they gather, process, and share knowledge
+5. Consider both their primary and secondary types
+6. Identify clear behavioral patterns from their writing style and content
 
-Provide a personality overview (max 800 characters) that:
-1. Starts with 2-3 sentences about their core traits beginning with "You are..."
-2. Follows with 1-2 gentle sentences about growth areas using "Type X tends to..." format
-3. Include both their primary type and wing in the analysis
+Provide a personality overview that:
+1. Describes their natural approach to learning and research
+2. Explains how they typically process and share information
+3. Highlights their unique strengths as a researcher
+4. Suggests how they complement other types
 
 Example overview:
-"You are an enthusiastic creator, constantly exploring new ideas and sharing your discoveries with others. You have a natural gift for innovation and bringing joy to others through your creations. Type 7s tend to juggle multiple projects simultaneously, which can sometimes lead to scattered energy, but their diverse interests often result in unique and creative solutions."
-
-Identify exactly 4 key behavioral patterns that indicate their type. For each pattern:
-- Give it a clear TWO WORD name (e.g. "Variety Seeking" or "Innovation Driven")
-- List exactly 3 very short direct quotes (2-3 words) from their casts
-- Add one clear sentence explaining how these quotes reveal their personality type
-
-Example format:
-Pattern: "Variety Seeking"
-Phrases: ["can't stop making", "next project excited", "exploring new ideas"]
-Explanation: "Your constant creation of different projects and exploration of new ideas shows a classic Type 7 desire for variety and stimulation."
-
-Choose exactly 3 alternative types that might seem to fit at first glance. For each:
-- Provide one clear explanation of why this type doesn't fit
-- Focus on observable patterns rather than assumptions
-- Keep explanations under 150 characters
-- Always use "Type X" format (capitalized) when referring to types
-
-Keep everything extremely concise and specific. Focus on clear behavioral evidence.`;
+"You have a natural talent for spotting subtle patterns in information and behavior. Your posts demonstrate careful attention to detail and systematic documentation of observations. As an Observer, you excel at building comprehensive understanding through methodical analysis."`;
 
   const result = await model.generateContent({
     contents: [{ role: 'user', parts: [{ text: prompt }] }],
@@ -142,7 +131,7 @@ export async function fetchUserInfo(fid) {
     {
       headers: {
         'accept': 'application/json',
-        'api_key': process.env.NEYAR_API_KEY || '',
+        'api_key': process.env.NEYNAR_API_KEY || '',
       },
     }
   );
@@ -167,7 +156,7 @@ export async function fetchUserCasts(fid) {
     const response = await fetch(url.toString(), {
       headers: {
         'accept': 'application/json',
-        'api_key': process.env.NEYAR_API_KEY || '',
+        'api_key': process.env.NEYNAR_API_KEY || '',
       },
     });
 

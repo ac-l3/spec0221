@@ -10,8 +10,8 @@ const karla = Karla({
 });
 
 export const metadata = {
-  title: 'Enneagram Guesser',
-  description: 'Analyze profiles to guess Enneagram types',
+  title: 'Spectral Researcher Type',
+  description: 'Discover your unique research and knowledge processing style',
 };
 
 export const viewport = {

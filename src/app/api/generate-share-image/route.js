@@ -3,7 +3,6 @@ import { uploadToR2, checkIfExists, getPublicUrl } from '../../../lib/cloudflare
 import { getFromKV, putToKV } from '../../../lib/cloudflare-kv';
 
 export const runtime = 'edge';
-
 export const maxDuration = 90;
 
 export async function POST(request) {
