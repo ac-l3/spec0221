@@ -4,6 +4,8 @@ import { analyzePersonality, fetchUserInfo, fetchUserCasts } from '../../../lib/
 
 export const maxDuration = 90;
 
+// export const runtime = 'edge';
+
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);

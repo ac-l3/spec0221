@@ -13,7 +13,9 @@
     "@google/generative-ai": "^0.22.0",
     "next": "15.1.7",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "@jridgewell/sourcemap-codec": "latest",
+    "@rollup/plugin-inject": "latest"
   },
   "devDependencies": {
     "@types/node": "22.13.4",
